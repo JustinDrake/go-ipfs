@@ -2,7 +2,6 @@ package repo
 
 import (
 	"errors"
-	"io"
 
 	"github.com/ipfs/go-ipfs/repo/config"
 )
@@ -40,6 +39,6 @@ func (m *Mock) Close() error { return errTODO }
 
 func (m *Mock) SetAPIAddr(addr string) error { return errTODO }
 
-func (m *Mock) SwarmKeyReader() (io.ReadCloser, error) {
+func (m *Mock) SwarmKey() ([]byte, error) {
 	return nil, errTODO
 }

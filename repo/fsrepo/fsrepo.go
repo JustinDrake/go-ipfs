@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -580,11 +581,17 @@ func (r *FSRepo) GetStorageUsage() (uint64, error) {
 	return du, err
 }
 
-func (r *FSRepo) SwarmKeyReader() (io.ReadCloser, error) {
+func (r *FSRepo) SwarmKey() ([]byte, error) {
 	repoPath := filepath.Clean(r.path)
 	spath := filepath.Join(repoPath, swarmKeyFile)
 
-	return os.Open(spath)
+	f, err := os.Open(spath)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(f)
 }
 
 var _ io.Closer = &FSRepo{}
