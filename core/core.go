@@ -19,6 +19,8 @@ import (
 
 	diag "github.com/ipfs/go-ipfs/diagnostics"
 
+	ipnet "github.com/libp2p/go-libp2p-interface-pnet"
+	pnet "github.com/libp2p/go-libp2p-pnet"
 	discovery "gx/ipfs/QmQfvKShQ2v7nkfCE4ygisxpcSBFvBYaorQ54SibY6PGXV/go-libp2p/p2p/discovery"
 	p2pbhost "gx/ipfs/QmQfvKShQ2v7nkfCE4ygisxpcSBFvBYaorQ54SibY6PGXV/go-libp2p/p2p/host/basic"
 	rhost "gx/ipfs/QmQfvKShQ2v7nkfCE4ygisxpcSBFvBYaorQ54SibY6PGXV/go-libp2p/p2p/host/routed"
@@ -160,7 +162,20 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		addrfilter = append(addrfilter, f)
 	}
 
-	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter, addrfilter)
+	swarmkey, err := n.Repo.SwarmKey()
+	if err != nil {
+		return err
+	}
+
+	var protec ipnet.Protector
+	if swarmkey != nil {
+		protec, err = pnet.NewProtector(swarmkey)
+		if err != nil {
+			return err
+		}
+	}
+
+	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, n.Reporter, addrfilter, protec)
 	if err != nil {
 		return err
 	}
@@ -617,15 +632,15 @@ func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
 	return listen, nil
 }
 
-type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error)
+type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, protec ipnet.Protector) (p2phost.Host, error)
 
 var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet) (p2phost.Host, error) {
+func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, protec ipnet.Protector) (p2phost.Host, error) {
 
 	// no addresses to begin with. we'll start later.
-	network, err := swarm.NewNetwork(ctx, nil, id, ps, bwr)
+	network, err := swarm.NewNetwork(ctx, nil, id, ps, protec, bwr)
 	if err != nil {
 		return nil, err
 	}
