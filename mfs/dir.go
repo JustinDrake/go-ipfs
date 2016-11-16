@@ -433,5 +433,5 @@ func (d *Directory) GetNode() (node.Node, error) {
 		return nil, err
 	}
 
-	return nd, err
+	return nd.Copy(), err
 }
